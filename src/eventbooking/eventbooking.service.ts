@@ -73,12 +73,8 @@ export class EventbookingService {
 
 
 
-  async createBooking(
-    userId: number,
-    holdId: number,
-  ) {
+  async createBooking(userId: number, holdId: number,) {
    
-
     const hold = await this.prisma.seatHold.findFirst({
         where: {
           id: holdId,
@@ -185,7 +181,8 @@ if (totalBookedToday > 5) {
   );
 }
 
-    await this.prisma.$transaction( async (tx) => {
+   const conformBooking = await this.prisma.$transaction( async (tx) => {
+
         const booking =await tx.booking.create({
             data: {
               userId,
@@ -216,7 +213,7 @@ if (totalBookedToday > 5) {
           totalPrice,
         );
 
-        await tx.booking.update({
+        const updatedBooking= await tx.booking.update({
           where:{id:booking.id},
            data: {
           status: BookingStatus.CONFIRMED,
@@ -228,14 +225,25 @@ if (totalBookedToday > 5) {
             id: hold.id,
           },
         });
+
+         return updatedBooking;
       },
     );
 
     return {
       message:'Booking confirmed successfully',
+      status:'success',
 
-    };
-  }
+  data: {
+    bookingId: conformBooking.id,
+    eventId: event.id,
+    eventName: event.name,
+    quantity: hold.quantity,
+    totalPrice,
+    bookingStatus: BookingStatus.CONFIRMED,
+    bookedAt: new Date(),
+  },
+  }}
 
 
 
@@ -264,5 +272,6 @@ if (totalBookedToday > 5) {
         createdAt: 'desc',
       },
     });
+  };
+
   }
-}
