@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateEventbookingDto } from './dto/create-eventbooking.dto';
 import { UpdateEventbookingDto } from './dto/update-eventbooking.dto';
 import { PrismaService } from 'src/prisma';
-import { BookingStatus, TransactionType } from 'src/generated/prisma/enums';
+import { BookingStatus, EventStatus, TransactionType } from 'src/generated/prisma/enums';
 import { PaymentService } from 'src/payment/payment.service';
 
 @Injectable()
@@ -100,6 +100,12 @@ export class EventbookingService {
     if (!event) {
       throw new Error('Event not found');
     }
+
+    if (event.status !== EventStatus.ACTIVE) {
+  throw new Error(
+    'Booking is not allowed for this event',
+  );
+}
 
     if (
       event.soldTickets + hold.quantity >
