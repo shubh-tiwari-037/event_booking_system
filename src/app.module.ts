@@ -18,6 +18,8 @@ import { EventbookingModule } from './eventbooking/eventbooking.module';
 import { WalletModule } from './wallet/wallet.module';
 import { ReportModule } from './report/report.module';
 import { PaymentModule } from './payment/payment.module';
+import { SchedulerService } from './scheduler/scheduler.service';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 
 
@@ -25,6 +27,8 @@ import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
+      SchedulerModule,
+     ScheduleModule.forRoot(),
     MulterModule.registerAsync({
       useFactory: (storageService: StorageService) => ({
         ...storageService.defaultMulterOptions,
@@ -72,6 +76,7 @@ import { PaymentModule } from './payment/payment.module';
       provide: APP_INTERCEPTOR,
       useClass: AppCacheInterceptor,
     },
+    SchedulerService,
   ],
 })
 export class AppModule {}
