@@ -6,9 +6,11 @@ import { PrismaService } from 'src/prisma';
 @Injectable()
 export class WalletService {
   constructor(private readonly prisma: PrismaService) {}
-  // check balance for user and manager
-  async checkBalance(userId: number) {
-    const wallet = await this.prisma.wallet.findUnique({
+ 
+  async checkBalance(userId: number,role:string) {
+
+    if(role===UserType.Manager || role===UserType.User ){
+         const wallet = await this.prisma.wallet.findUnique({
       where: {
         userId,
       },
@@ -17,60 +19,113 @@ export class WalletService {
     if (!wallet) {
       throw new Error('Wallet not found');
     }
+      return {
+            balance: wallet.balance,
+          };
+    }
+   
 
-    return {
-      balance: wallet.balance,
-    };
+     if(role===UserType.Admin ){
+         const wallet = await this.prisma.adminWallet.findUnique({
+      where: {
+        adminId:userId,
+      },
+    });
+
+    if (!wallet) {
+      throw new Error('Wallet not found');
+    }
+      return {
+            balance:wallet.balance,
+          };
+    }
+   
+    
   }
 
-  // add balance 
-  async depositBalance(userId: number, amount: number) {
+
+
+  
+  async depositBalance(userId: number, amount: number, role: string) {
     if (amount <= 0) {
       throw new Error('Amount must be greater than 0');
     }
 
-    const wallet = await this.prisma.wallet.findUnique({
-      where: {
-        userId,
-      },
-    });
+    if (role === UserType.User || role === UserType.Manager) {
+      const wallet = await this.prisma.wallet.findUnique({
+        where: {
+          userId,
+        },
+      });
 
-    if (!wallet) {
-      throw new Error('Wallet not found');
+      if (!wallet) {
+        throw new Error('Wallet not found');
+      }
+
+   
+
+      const updatedWallet = await this.prisma.wallet.update({
+        where: {
+          id: wallet.id,
+        },
+
+        data: {
+          balance: {
+            increment: amount,
+          },
+        },
+      });
+
+  
+      await this.prisma.transaction.create({
+        data: {
+          userId,
+          amount,
+          type: TransactionType.CREDIT,
+          reason: TransactionReason.ADD_BALANCE,
+        },
+      });
+      return {
+        message: 'Balance deposited successfully',
+        balance: updatedWallet.balance,
+      };
     }
 
-    // update wallet agar wallet mil gaya h to
-
-    const updatedWallet = await this.prisma.wallet.update({
-      where: {
-        id: wallet.id,
-      },
-
-      data: {
-        balance: {
-          increment: amount,
+    if (role === UserType.Admin) {
+      const wallet = await this.prisma.adminWallet.findUnique({
+        where: {
+          adminId: userId,
         },
-      },
-    });
+      });
 
-    // transaction history
-    await this.prisma.transaction.create({
-      data: {
-        userId,
-        amount,
-        type: TransactionType.CREDIT,
-        reason: TransactionReason.ADD_BALANCE,
-      },
-    });
+      const updatedWallet = await this.prisma.adminWallet.update({
+        where: {
+          adminId: userId,
+        },
+        data: {
+          balance: {
+            increment: amount,
+          },
+        },
+      });
 
-    return {
-      message: 'Balance deposited successfully',
-
-      balance: updatedWallet.balance,
-    };
+     
+      await this.prisma.adminTransaction.create({
+        data: {
+          adminId: userId,
+          amount,
+          type: TransactionType.CREDIT,
+          reason: TransactionReason.ADD_BALANCE,
+        },
+      });
+      return {
+        message: 'Balance deposited successfully in admin',
+        balance: updatedWallet.balance,
+      };
+    }
   }
 
-  // see transicaion based on role and id
+
   async getTransactions(id: number, role: string) {
     // ADMIN
     if (role === UserType.Admin) {

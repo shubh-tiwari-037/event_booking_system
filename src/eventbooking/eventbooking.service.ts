@@ -73,183 +73,183 @@ export class EventbookingService {
 
 
 
-  async createBooking(userId: number, holdId: number,) {
-   
-    const hold = await this.prisma.seatHold.findFirst({
-        where: {
-          id: holdId,
-          userId,
-          expiresAt: {
-            gt: new Date(),
-          },
-        },
-      });
-
-    if (!hold) {
-      throw new Error(
-        'Seat hold expired or invalid',
-      );
-    }
-
-    const event =await this.prisma.event.findUnique({
-        where: {
-          id: hold.eventId,
-        },
-      });
-
-    if (!event) {
-      throw new Error('Event not found');
-    }
-
-    if (event.status !== EventStatus.ACTIVE) {
-  throw new Error(
-    'Booking is not allowed for this event',
-  );
-}
-
-    if (
-      event.soldTickets + hold.quantity >
-      event.maxTickets
-    ) {
-      throw new Error('Not enough tickets available',);
-    }
-
-    const totalPrice = event.ticketPrice * hold.quantity;
-
-    const wallet =await this.prisma.wallet.findUnique({
-        where: {
-          userId,
-        },
-      });
-
-    if (!wallet) {
-      throw new Error('Wallet not found');
-    }
-
-    if (wallet.balance < totalPrice) {
-      throw new Error('Insufficient balance');
-    }
-
-
-
-const startOfDay = new Date();
-startOfDay.setHours(0, 0, 0, 0);
-
-const endOfDay = new Date();
-endOfDay.setHours(23, 59, 59, 999);
-
-
-const bookedTickets =await this.prisma.booking.aggregate({
-    where: {
-      userId,
-      eventId: hold.eventId,
-
-      status: BookingStatus.CONFIRMED,
-
-      createdAt: {
-        gte: startOfDay,
-        lte: endOfDay,
-      },
-    },
-
-    _sum: {
-      quantity: true,
-    },
-  });
-
-
-const holdTickets =await this.prisma.seatHold.aggregate({
-    where: {
-      userId,
-      eventId: hold.eventId,
-
-      expiresAt: {
-        gt: new Date(),
-      },
-
-      createdAt: {
-        gte: startOfDay,
-        lte: endOfDay,
-      },
-    },
-
-    _sum: {
-      quantity: true,
-    },
-  });
-
-const totalBookedToday =(bookedTickets._sum.quantity || 0) +(holdTickets._sum.quantity || 0);
-
-
-if (totalBookedToday > 5) {
-  throw new Error(
-    'Maximum 5 tickets allowed per day for this event conform and holdseat mila ke',
-  );
-}
-
-   const conformBooking = await this.prisma.$transaction( async (tx) => {
-
-        const booking =await tx.booking.create({
-            data: {
-              userId,
-              eventId: hold.eventId,
-              quantity: hold.quantity,
-              totalPrice,
-              status:
-                BookingStatus.PENDING,
+    async createBooking(userId: number, holdId: number,) {
+    
+      const hold = await this.prisma.seatHold.findFirst({
+          where: {
+            id: holdId,
+            userId,
+            expiresAt: {
+              gt: new Date(),
             },
-          });
+          },
+        });
 
-        await tx.event.update({
+      if (!hold) {
+        throw new Error(
+          'Seat hold expired or invalid',
+        );
+      }
+
+      const event =await this.prisma.event.findUnique({
           where: {
             id: hold.eventId,
           },
-          data: {
-            soldTickets: {
-              increment: hold.quantity,
-            },
-          },
         });
 
-        await this.paymentService.processBookingPayment(
-          tx,
-          booking,
-          event,
-          userId,
-          totalPrice,
-        );
+      if (!event) {
+        throw new Error('Event not found');
+      }
 
-        const updatedBooking= await tx.booking.update({
-          where:{id:booking.id},
-           data: {
-          status: BookingStatus.CONFIRMED,
-        },
-        });
-
-        await tx.seatHold.delete({
-          where: {
-            id: hold.id,
-          },
-        });
-
-         return updatedBooking;
-      },
+      if (event.status !== EventStatus.ACTIVE) {
+    throw new Error(
+      'Booking is not allowed for this event',
     );
+  }
 
-    return {
-      message:'Booking confirmed successfully',
-      status:'success',
+      if (
+        event.soldTickets + hold.quantity >
+        event.maxTickets
+      ) {
+        throw new Error('Not enough tickets available',);
+      }
 
-  data: {
-    bookingId: conformBooking.id,
-    eventId: event.id,
-    eventName: event.name,
-    quantity: hold.quantity,
-    totalPrice,
-    bookingStatus: BookingStatus.CONFIRMED,
-    bookedAt: new Date(),
-  },
-  }}
+      const totalPrice = event.ticketPrice * hold.quantity;
+
+      const wallet =await this.prisma.wallet.findUnique({
+          where: {
+            userId,
+          },
+        });
+
+      if (!wallet) {
+        throw new Error('Wallet not found');
+      }
+
+      if (wallet.balance < totalPrice) {
+        throw new Error('Insufficient balance');
+      }
+
+
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+
+  const bookedTickets =await this.prisma.booking.aggregate({
+      where: {
+        userId,
+        eventId: hold.eventId,
+
+        status: BookingStatus.CONFIRMED,
+
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+
+      _sum: {
+        quantity: true,
+      },
+    });
+
+
+  const holdTickets =await this.prisma.seatHold.aggregate({
+      where: {
+        userId,
+        eventId: hold.eventId,
+
+        expiresAt: {
+          gt: new Date(),
+        },
+
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+
+      _sum: {
+        quantity: true,
+      },
+    });
+
+  const totalBookedToday =(bookedTickets._sum.quantity || 0) +(holdTickets._sum.quantity || 0);
+
+
+  if (totalBookedToday > 5) {
+    throw new Error(
+      'Maximum 5 tickets allowed per day for this event conform and holdseat mila ke',
+    );
+  }
+
+    const conformBooking = await this.prisma.$transaction( async (tx) => {
+
+          const booking =await tx.booking.create({
+              data: {
+                userId,
+                eventId: hold.eventId,
+                quantity: hold.quantity,
+                totalPrice,
+                status:
+                  BookingStatus.PENDING,
+              },
+            });
+
+          await tx.event.update({
+            where: {
+              id: hold.eventId,
+            },
+            data: {
+              soldTickets: {
+                increment: hold.quantity,
+              },
+            },
+          });
+
+          await this.paymentService.processBookingPayment(
+            tx,
+            booking,
+            event,
+            userId,
+            totalPrice,
+          );
+
+          const updatedBooking= await tx.booking.update({
+            where:{id:booking.id},
+            data: {
+            status: BookingStatus.CONFIRMED,
+          },
+          });
+
+          await tx.seatHold.delete({
+            where: {
+              id: hold.id,
+            },
+          });
+
+          return updatedBooking;
+        },
+      );
+
+      return {
+        message:'Booking confirmed successfully',
+        status:'success',
+
+    data: {
+      bookingId: conformBooking.id,
+      eventId: event.id,
+      eventName: event.name,
+      quantity: hold.quantity,
+      totalPrice,
+      bookingStatus: BookingStatus.CONFIRMED,
+      bookedAt: new Date(),
+    },
+    }}
 
 
 

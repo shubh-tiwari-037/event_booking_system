@@ -47,16 +47,17 @@ enum EventStatus {
 }
 
 model Admin {
-  id           Int          @id @default(autoincrement())
-  firstname    String
-  lastname     String
-  email        String       @unique
-  profileImage String?      @map("profile_image")
-  status       AdminStatus  @default(Active)
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
-  meta         AdminMeta?
-  adminWallet  AdminWallet?
+  id               Int                @id @default(autoincrement())
+  firstname        String
+  lastname         String
+  email            String             @unique
+  profileImage     String?            @map("profile_image")
+  status           AdminStatus        @default(Active)
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  meta             AdminMeta?
+  adminWallet      AdminWallet?
+  adminTransaction AdminTransaction[]
 
   @@map("admin")
 }
@@ -88,12 +89,12 @@ model User {
   meta         UserMeta?
   settings     UserSetting[]
 
-  wallet            Wallet?
-  events            Event[]            @relation("ManagerEvents")
-  bookings          Booking[]
-  holds             SeatHold[]
-  transactions      Transaction[]
-  adminTransactions AdminTransaction[]
+  wallet       Wallet?
+  events       Event[]       @relation("ManagerEvents")
+  bookings     Booking[]
+  holds        SeatHold[]
+  transactions Transaction[]
+  // adminTransactions AdminTransaction[]
 
   @@index([email])
   @@map("user")
@@ -167,9 +168,11 @@ model AdminTransaction {
   reason      TransactionReason
   referenceId Int?
 
+  // booking Booking @relation(fields: [referenceId], references: [id])
+
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [adminId], references: [id])
+  admin Admin @relation(fields: [adminId], references: [id])
 
   @@index([adminId])
   @@map("admin_transaction")
@@ -221,8 +224,9 @@ model Booking {
   user  User  @relation(fields: [userId], references: [id])
   event Event @relation(fields: [eventId], references: [id])
 
-  seatHold     SeatHold?     @relation(fields: [seatHoldId], references: [id])
-  transactions Transaction[]
+  // seatHold     SeatHold?     @relation(fields: [seatHoldId], references: [id])
+  transactions      Transaction[]
+  adminTransactions AdminTransaction[]
 
   @@index([userId])
   @@index([eventId])
@@ -244,7 +248,7 @@ model SeatHold {
   user  User  @relation(fields: [userId], references: [id])
   event Event @relation(fields: [eventId], references: [id])
 
-  bookings Booking[]
+  // bookings Booking[]
 
   @@index([eventId, expiresAt])
   @@index([userId])

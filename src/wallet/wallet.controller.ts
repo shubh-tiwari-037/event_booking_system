@@ -30,8 +30,8 @@ export class WalletController {
   // CHECK balance for user
   // @Roles(UserType.User)
   @Get('balance')
-  checkBalance(@Req() req: any) {
-    return this.walletService.checkBalance(req.user.id);
+  checkBalance(@Req() req: AuthenticatedRequest) {
+    return this.walletService.checkBalance(req.user.id, req.user.type);
   }
 
   // add balancr to wallet
@@ -41,7 +41,7 @@ export class WalletController {
     @Req() req: AuthenticatedRequest,
     @Body() dto: DepositBalanceDto,
   ) {
-    return this.walletService.depositBalance(req.user.id, dto.amount);
+    return this.walletService.depositBalance(req.user.id, dto.amount, req.user.type);
   }
 
   // TRANSACTION  history based on role

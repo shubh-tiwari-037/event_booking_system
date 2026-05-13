@@ -1,32 +1,33 @@
 import { UserType } from '@Common';
 import { Injectable } from '@nestjs/common';
-import { TransactionReason, TransactionType } from 'src/generated/prisma/enums';
+import { platform } from 'node:os';
+import {
+  BookingStatus,
+  TransactionReason,
+  TransactionType,
+} from 'src/generated/prisma/enums';
 import { PrismaService } from 'src/prisma';
-
 
 @Injectable()
 export class ReportService {
-  
-constructor(private readonly prisma:PrismaService){}
+  constructor(private readonly prisma: PrismaService) {}
 
-async adminReportData(){
-  return this.prisma.$transaction(async(tx)=>{
+  async adminReportData() {
+    return this.prisma.$transaction(async (tx) => {
+      const totalUsers = await tx.user.count({
+        where: { role: 'USER' },
+      });
 
-    const totalUsers= await tx.user.count({
-      where:{role:'USER'}
-    });
+      const totalManager = await tx.user.count({
+        where: { role: 'MANAGER' },
+      });
 
-     const totalManager= await tx.user.count({
-      where:{role:'MANAGER'}
-    });
-
-     const suspendedUsers = await tx.user.count({
+      const suspendedUsers = await tx.user.count({
         where: { status: 'Blocked' },
       });
 
-    const totalEvents = await tx.event.count({});
+      const totalEvents = await tx.event.count({});
 
-    
       const activeEvents = await tx.event.count({
         where: { status: 'ACTIVE' },
       });
@@ -35,7 +36,7 @@ async adminReportData(){
         where: { status: 'INACTIVE' },
       });
 
-       const confirmedBookings = await tx.booking.count({
+      const confirmedBookings = await tx.booking.count({
         where: { status: 'CONFIRMED' },
       });
 
@@ -44,66 +45,59 @@ async adminReportData(){
       });
 
       const managerShare = await tx.transaction.aggregate({
-        where:{
-          reason: TransactionReason.MANAGER_SHARE
+        where: {
+          reason: TransactionReason.MANAGER_SHARE,
         },
 
-        _sum:{
-          amount:true
-        }
+        _sum: {
+          amount: true,
+        },
       });
 
-
- const adminShare = await tx.adminTransaction.aggregate({
-        where:{
-          reason: TransactionReason.ADMIN_SHARE
+      const adminShare = await tx.adminTransaction.aggregate({
+        where: {
+          reason: TransactionReason.ADMIN_SHARE,
         },
 
-        _sum:{
-          amount:true
-        }
+        _sum: {
+          amount: true,
+        },
       });
 
+      const adminRevenue = adminShare._sum.amount || 0;
+      const managerRevenue = managerShare._sum.amount || 0;
+      const totalRevenue = adminRevenue + managerRevenue;
 
-      const adminRevenue =adminShare._sum.amount || 0;
-const managerRevenue =managerShare._sum.amount || 0;
-const totalRevenue =adminRevenue + managerRevenue;
+      return {
+        status: 'success',
 
-return {
-  status: 'success',
+        data: {
+          users: {
+            totalUsers: totalUsers,
+            totalManagers: totalManager,
+            suspendedUsers: suspendedUsers,
+          },
 
-  data: {
-    users: {
-      totalUsers: totalUsers,
-      totalManagers: totalManager,
-      suspendedUsers: suspendedUsers,
-    },
+          events: {
+            totalEvents: totalEvents,
+            activeEvents: activeEvents,
+            suspendedEvents: suspendedEvents,
+          },
 
-    events: {
-      totalEvents: totalEvents,
-      activeEvents: activeEvents,
-      suspendedEvents: suspendedEvents,
-    },
+          bookings: {
+            confirmedBooking: confirmedBookings,
+            pendingBookings: pendingBookings,
+          },
 
-    bookings: {
-      confirmedBooking: confirmedBookings,
-      pendingBookings: pendingBookings,
-    },
-
-    earnings: {
-     adminTotalEarnings: adminRevenue,
-      managerTotalEarnings: managerRevenue,
-      totalRevenueOnTicketBooking: totalRevenue,
-  },
-
-
-}};
-
-
-  });
-
-}
-
+          earnings: {
+            adminTotalEarnings: adminRevenue,
+            managerTotalEarnings: managerRevenue,
+            totalRevenueOnTicketBooking: totalRevenue,
+          },
+        },
+      };
+    });
+  }
 
   async managerData(managerId: number) {
     return await this.prisma.$transaction(async (tx) => {
@@ -160,32 +154,57 @@ return {
         },
       });
 
-const managerShare=managerRevenue._sum.amount || 0
-  
-    return {
-      status: 'success',
+      const managerShare = managerRevenue._sum.amount || 0;
 
-      data: {
-        events: {
-          total: totalEvents,
-          active: activeEvents,
-          suspended: suspendedEvents,
+      return {
+        status: 'success',
+
+        data: {
+          events: {
+            total: totalEvents,
+            active: activeEvents,
+            suspended: suspendedEvents,
+          },
+
+          bookings: {
+            confirmed: ConfirmedBookings,
+            pending: PandingBookings,
+          },
+
+          earnings: {
+            manager: managerShare,
+          },
         },
-
-        bookings: {
-          confirmed: ConfirmedBookings,
-          pending: PandingBookings,
-        },
-
-        earnings: {
-          manager:managerShare,
-        },
-
-      },
-    };
+      };
     });
   }
 
+
+
+  // async getPlatformRevenue(eventId: number) {
+  //   const revenue = await this.prisma.adminTransaction.aggregate({
+  //     where: {
+  //       reason: TransactionReason.ADMIN_SHARE,
+  //       booking: {
+  //        is:{
+  //         eventId: eventId,
+  //           status: BookingStatus.CONFIRMED,
+  //        }
+            
+  //         },
+  //     },
+
+  //      _sum: {
+  //         amount: true,
+  //       },
+  //   });
+
+  //   return {
+  //     message:'paltform revenue for this event',
+  //     eventId,
+  //     platformRevenue: revenue._sum?.amount|| 0,
+  //   };
+  // }
 
 
 }

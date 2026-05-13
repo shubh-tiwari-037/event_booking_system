@@ -1,4 +1,4 @@
-import { Controller, Get, Req, UseGuards, } from '@nestjs/common';
+import { Controller, Get, Param, Req, UseGuards, } from '@nestjs/common';
 import { ReportService } from './report.service';
 import { AuthenticatedRequest, JwtAuthGuard, Roles, RolesGuard, UserType } from '@Common';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -27,6 +27,14 @@ export class ReportController {
       req.user.id,
     );
   }
+
+
+  // @Roles(UserType.Admin)
+  // @Get('platform-revenue/:eventId')
+  // async platFromRevenue(@Param('eventId') eventId:number){
+  //   console.log("mm hu na")
+  //   return this.reportService.getPlatformRevenue(Number(eventId));
+  // }
 
 
 }
