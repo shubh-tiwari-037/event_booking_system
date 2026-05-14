@@ -13,13 +13,14 @@ export class EventService {
   async createEvent(createEventDto: CreateEventDto, req: AuthenticatedRequest) {
     const { name, maxTickets, date, ticketPrice, city, venue, country } = createEventDto;
     const managerId = req.user.id;
-    const eventDate = new Date(Date.now() +6* 60 * 1000);
+    // const eventDate = new Date(Date.now() + 7 * 24 * 60* 60 * 1000);
     
 
     try {
       
        const existeEvent = await this.prisma.event.findFirst({
-      where: { name, date: eventDate },
+      // where: { name, date: eventDate },
+       where: { name, date },
     });
 
     if (existeEvent) {
@@ -30,7 +31,8 @@ export class EventService {
     data:{
         name,
         maxTickets,
-        date: eventDate,
+        // date: eventDate,
+         date,
         ticketPrice,
         managerId,
         city,

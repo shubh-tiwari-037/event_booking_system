@@ -226,7 +226,7 @@ model Booking {
 
   // seatHold     SeatHold?     @relation(fields: [seatHoldId], references: [id])
   transactions      Transaction[]
-  adminTransactions AdminTransaction[]
+  // adminTransactions AdminTransaction[]
 
   @@index([userId])
   @@index([eventId])

@@ -46,6 +46,8 @@ export class UsersService {
     );
   }
 
+
+
   private hashPassword(password: string): { salt: string; hash: string } {
     const salt = this.utilsService.generateSalt(this.config.passwordSaltLength);
     const hash = this.utilsService.hashPassword(
@@ -56,9 +58,13 @@ export class UsersService {
     return { salt, hash };
   }
 
+
+
   private isValidUsername(username: string): boolean {
     return /^[a-z][a-z0-9_]{3,20}$/.test(username);
   }
+
+
 
   async isEmailExist(email: string, excludeUserId?: number): Promise<boolean> {
     return (
@@ -72,6 +78,8 @@ export class UsersService {
       })) !== 0
     );
   }
+
+
 
   async isUsernameExist(
     username: string,
@@ -89,6 +97,8 @@ export class UsersService {
     );
   }
 
+
+
   async isMobileExist(
     mobile: string,
     excludeUserId?: number,
@@ -105,6 +115,7 @@ export class UsersService {
     );
   }
 
+
   async getById(userId: number): Promise<User> {
     return await this.prisma.user.findUniqueOrThrow({
       where: {
@@ -112,6 +123,7 @@ export class UsersService {
       },
     });
   }
+
 
   async getByEmail(email: string): Promise<User | null> {
     return await this.prisma.user.findUnique({
@@ -121,6 +133,8 @@ export class UsersService {
     });
   }
 
+
+
   async getByMobile(mobile: string): Promise<User | null> {
     return await this.prisma.user.findUnique({
       where: {
@@ -129,6 +143,8 @@ export class UsersService {
     });
   }
 
+
+
   async getMetaById(userId: number): Promise<UserMeta> {
     return await this.prisma.userMeta.findUniqueOrThrow({
       where: {
@@ -136,6 +152,8 @@ export class UsersService {
       },
     });
   }
+
+
 
   async getMetaByEmail(email: string): Promise<UserMeta> {
     return await this.prisma.userMeta.findFirstOrThrow({
@@ -146,6 +164,8 @@ export class UsersService {
       },
     });
   }
+
+
 
   async validateCredentials(
     email: string,
@@ -176,6 +196,8 @@ export class UsersService {
 
     return false;
   }
+
+
 
   async create(data: {
     firstname: string;
@@ -257,6 +279,8 @@ export class UsersService {
     return user;
   }
 
+
+
   async getOrCreateByGoogle(data: {
     googleId: string;
     email: string;
@@ -301,6 +325,8 @@ export class UsersService {
     };
   }
 
+
+
   async getProfile(userId: number): Promise<User> {
     const user = await this.getById(userId);
     if (user.profileImage) {
@@ -308,6 +334,8 @@ export class UsersService {
     }
     return user;
   }
+
+
 
   async updateProfileDetails(
     data: {
@@ -471,6 +499,8 @@ export class UsersService {
     return user;
   }
 
+
+
   async sendResetPasswordVerificationCode(email?: string, mobile?: string) {
     let user: User | null | undefined;
 
@@ -502,6 +532,7 @@ export class UsersService {
     return response;
   }
 
+  
 
   async resetPassword(
     code: string,

@@ -38,8 +38,7 @@ export class SchedulerService {
   async deleteExpiredSeatHolds() {
     const now = new Date();
 
-    const deletedHolds =
-      await this.prisma.seatHold.deleteMany({
+    const deletedHolds = await this.prisma.seatHold.deleteMany({
         where: {
           expiresAt: {
             lt: now,
