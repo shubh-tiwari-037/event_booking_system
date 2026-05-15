@@ -1,15 +1,30 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString,  IsNumber,  Min, IsDate, IsNotEmpty } from 'class-validator';
+import { IsString,  IsNumber,  Min, IsDate, IsNotEmpty, IsOptional } from 'class-validator';
 
 
 export class CreateEventDto {
   @ApiProperty({ example: 'Music Concert' })
   @IsString()
-  name!: string;
+  eventTitle!: string;
+
+  @ApiProperty({ default: 'Kapil Sharma'})
+  @IsOptional()
+  @IsString()
+  performer?: string;
+
 @IsNotEmpty()
   @ApiProperty()
   @IsDate()
   date!:Date
+
+
+  @ApiProperty()
+  @IsDate()
+  startTime!: Date;
+
+  @ApiProperty()
+  @IsDate()
+  endTime!: Date;
 
   @ApiProperty({ example: 499.99 })
   @IsNumber()
@@ -25,6 +40,20 @@ export class CreateEventDto {
   @IsNotEmpty()
   @ApiProperty({example:"bhopal"})
   city!: string
+
+   @ApiProperty({default: 'MP Nagar Zone-2, Bhopal',})
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  
+    @ApiProperty({
+    default: 'Madhya Pradesh',
+  })
+  @IsOptional()
+  @IsString()
+  state?: string;
+
 
 @IsString()
   @IsNotEmpty()

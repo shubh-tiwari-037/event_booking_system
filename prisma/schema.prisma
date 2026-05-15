@@ -168,7 +168,7 @@ model AdminTransaction {
   reason      TransactionReason
   referenceId Int?
 
-  // booking Booking @relation(fields: [referenceId], references: [id])
+  booking Booking? @relation(fields: [referenceId], references: [id])
 
   createdAt DateTime @default(now())
 
@@ -180,9 +180,15 @@ model AdminTransaction {
 
 model Event {
   id          Int      @id @default(autoincrement())
-  name        String
+  eventTitle       String  
+  performer   String   @default("Kapil Sharma")
+  address     String   @default("MP Nagar Zone-2, Bhopal")
   city        String
+  state       String   @default("Madhya Pradesh")
   venue       String
+  startTime   DateTime?
+
+  endTime     DateTime?
   country     String
   date        DateTime
   ticketPrice Float
@@ -226,7 +232,7 @@ model Booking {
 
   // seatHold     SeatHold?     @relation(fields: [seatHoldId], references: [id])
   transactions      Transaction[]
-  // adminTransactions AdminTransaction[]
+  adminTransactions AdminTransaction[]
 
   @@index([userId])
   @@index([eventId])

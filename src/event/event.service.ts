@@ -11,7 +11,7 @@ export class EventService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createEvent(createEventDto: CreateEventDto, req: AuthenticatedRequest) {
-    const { name, maxTickets, date, ticketPrice, city, venue, country } = createEventDto;
+    const { eventTitle,performer, maxTickets, date,startTime,endTime ,ticketPrice, city,address,state, venue, country } = createEventDto;
     const managerId = req.user.id;
     // const eventDate = new Date(Date.now() + 7 * 24 * 60* 60 * 1000);
     
@@ -20,7 +20,7 @@ export class EventService {
       
        const existeEvent = await this.prisma.event.findFirst({
       // where: { name, date: eventDate },
-       where: { name, date },
+       where: { eventTitle, date },
     });
 
     if (existeEvent) {
@@ -29,19 +29,24 @@ export class EventService {
 
     const event = await this.prisma.event.create({
     data:{
-        name,
+        eventTitle,
+        performer,
         maxTickets,
         // date: eventDate,
          date,
+         startTime,
+         endTime,
         ticketPrice,
         managerId,
         city,
+        address,
+        state,
         country,
         venue
       },
     });
 
-    return {message :"event created successfully"}
+    return {message :"event created successfully",event}
 
     } catch (error) {
       console.log("ERROR WHILE CREATING EVENT",error)

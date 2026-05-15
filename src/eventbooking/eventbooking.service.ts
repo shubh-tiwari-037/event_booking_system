@@ -11,65 +11,144 @@ export class EventbookingService {
      private paymentService: PaymentService,
   ) {}
 
-  async holdSeat(userId: number, eventId: number, quantity: number) {
-    if (quantity <= 0) {
-      throw new Error('Quantity must be at least 1');
-    }
+
+  // async holdSeat(userId: number, eventId: number, quantity: number) {
+  //   if (quantity <= 0) {
+  //     throw new Error('Quantity must be at least 1');
+  //   }
 
    
-    const event = await this.prisma.event.findUnique({
-      where: {
-        id: eventId,
-      },
-    });
+  //   const event = await this.prisma.event.findUnique({
+  //     where: {
+  //       id: eventId,
+  //     },
+  //   });
 
-    if (!event) {
-      throw new Error('Event not found');
-    }
+  //   if (!event) {
+  //     throw new Error('Event not found');
+  //   }
 
   
-    const activeHolds = await this.prisma.seatHold.aggregate({
-      where: {
-        eventId,
-        expiresAt: {
-          gt: new Date(),
-        },
-      },
+  //   const activeHolds = await this.prisma.seatHold.aggregate({
+  //     where: {
+  //       eventId,
+  //       expiresAt: {
+  //         gt: new Date(),
+  //       },
+  //     },
 
-      _sum: {
-        quantity: true,
-      },
-    });
+  //     _sum: {
+  //       quantity: true,
+  //     },
+  //   });
 
-    const heldSeats = activeHolds._sum.quantity || 0;
+  //   const heldSeats = activeHolds._sum.quantity || 0;
 
    
-    const availableSeats = event.maxTickets - event.soldTickets - heldSeats;
+  //   const availableSeats = event.maxTickets - event.soldTickets - heldSeats;
 
-    if (availableSeats < quantity) {
-      throw new Error('Not enough seats available');
-    }
-
-  
-    const expiresAt = new Date(Date.now() + 1 * 60 * 1000);
+  //   if (availableSeats < quantity) {
+  //     throw new Error('Not enough seats available');
+  //   }
 
   
-    const hold = await this.prisma.seatHold.create({
-      data: {
-        userId,
-        eventId,
-        quantity,
-        expiresAt,
-      },
-    });
+  //   const expiresAt = new Date(Date.now() + 1 * 60 * 1000);
 
-    return {
-      message: 'Seat hold created',
-      holdId: hold.id,
-      expiresAt: hold.expiresAt,
-    };
+  
+  //   const hold = await this.prisma.seatHold.create({
+  //     data: {
+  //       userId,
+  //       eventId,
+  //       quantity,
+  //       expiresAt,
+  //     },
+  //   });
+
+  //   return {
+  //     message: 'Seat hold created',
+  //     holdId: hold.id,
+  //     expiresAt: hold.expiresAt,
+  //   };
+  // }
+
+async holdSeat( userId: number,eventId: number, quantity: number,) {
+
+  if (quantity <= 0) {
+    throw new Error(
+      'Quantity must be at least 1',
+    );
   }
 
+  return await this.prisma.$transaction(
+    async (tx) => {
+
+     
+      const events = await tx.$queryRaw<any[]>`
+
+          SELECT *
+          FROM event
+          WHERE id = ${eventId}
+          FOR UPDATE
+        `;
+
+      const event = events[0];
+
+      if (!event) {
+        throw new Error('Event not found');
+      }
+
+      const activeHolds =
+        await tx.seatHold.aggregate({
+
+          where: {
+
+            eventId,
+
+            expiresAt: {
+              gt: new Date(),
+            },
+          },
+
+          _sum: {
+            quantity: true,
+          },
+        });
+
+      const heldSeats = activeHolds._sum.quantity ?? 0;
+
+      const availableSeats = event.maxTickets - event.soldTickets -heldSeats;
+
+      if (availableSeats < quantity) {
+        throw new Error(
+          'Not enough seats available',
+        );
+      }
+
+      const expiresAt = new Date(
+          Date.now() + 1 * 60 * 1000,
+        );
+
+      const hold = await tx.seatHold.create({
+
+          data: {
+            userId,
+            eventId,
+            quantity,
+            expiresAt,
+          },
+        });
+
+      return {
+
+        message: 'Seat hold created',
+
+        holdId: hold.id,
+
+        expiresAt: hold.expiresAt,
+      };
+    },
+  );
+}
 
 
 
@@ -243,7 +322,7 @@ export class EventbookingService {
     data: {
       bookingId: conformBooking.id,
       eventId: event.id,
-      eventName: event.name,
+      eventName: event.eventTitle,
       quantity: hold.quantity,
       totalPrice,
       bookingStatus: BookingStatus.CONFIRMED,

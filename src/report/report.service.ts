@@ -1,6 +1,7 @@
 import { UserType } from '@Common';
 import { Injectable } from '@nestjs/common';
 import { platform } from 'node:os';
+import { eventNames } from 'node:process';
 import {
   BookingStatus,
   TransactionReason,
@@ -181,30 +182,48 @@ export class ReportService {
 
 
 
-  // async getPlatformRevenue(eventId: number) {
-  //   const revenue = await this.prisma.adminTransaction.aggregate({
-  //     where: {
-  //       reason: TransactionReason.ADMIN_SHARE,
-  //       booking: {
-  //        is:{
-  //         eventId: eventId,
-  //           status: BookingStatus.CONFIRMED,
-  //        }
+  async getPlatformRevenue(eventId: number) {
+
+     const event =await this.prisma.event.findUnique({
+
+      where: {
+        id: eventId,
+      },
+
+      include: {
+        manager: true,
+      },
+    });
+
+  if (!event) {
+    throw new Error('Event not found');
+  }
+
+    const revenue = await this.prisma.adminTransaction.aggregate({
+      where: {
+        reason: TransactionReason.ADMIN_SHARE,
+        booking: {
+         is:{
+          eventId: eventId,
+            status: BookingStatus.CONFIRMED,
+         }
             
-  //         },
-  //     },
+          },
+      },
 
-  //      _sum: {
-  //         amount: true,
-  //       },
-  //   });
+       _sum: {
+          amount: true,
+        },
+    });
 
-  //   return {
-  //     message:'paltform revenue for this event',
-  //     eventId,
-  //     platformRevenue: revenue._sum?.amount|| 0,
-  //   };
-  // }
+    return {
+      message:'paltform revenue for this event',
+       managerName:`${event.manager.firstname} ${event.manager.lastname}`,
+      eventId,
+      eventName:event.eventTitle,
+      platformRevenue: revenue._sum?.amount|| 0,
+    };
+  }
 
 
 }
