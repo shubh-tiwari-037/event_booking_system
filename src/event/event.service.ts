@@ -61,8 +61,19 @@ export class EventService {
     orderBy: {
       date: 'asc', 
     },
+      include:{
+      manager:{
+        select:{
+          firstname:true,lastname:true
+        }
+      }
+    },
   });
+  if(!events)
+  {
 
+    throw new Error("event is not found ")
+  }
   return events;
 }
 
@@ -71,6 +82,13 @@ export class EventService {
  async eventById(id: number) {
   const event = await this.prisma.event.findUnique({
     where: { id },
+    include:{
+      manager:{
+        select:{
+          firstname:true,lastname:true
+        }
+      }
+    },
   });
 
   if (!event) {
