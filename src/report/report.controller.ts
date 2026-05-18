@@ -33,4 +33,15 @@ export class ReportController {
   
     return this.reportService.getPlatformRevenue(Number(eventId));
   }
+
+  @Roles(UserType.Manager)
+  @Get('event-detail/:eventId')
+  getEventWiseReport(
+    @Req() req:AuthenticatedRequest,
+    @Param('eventId', ParseIntPipe) eventId: number,
+  ) {
+    const userId=req.user.id
+    return this.reportService.getEventWiseReport(eventId,userId);
+  }
+
 }

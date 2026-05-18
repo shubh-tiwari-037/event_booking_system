@@ -71,6 +71,7 @@ export class EventbookingService {
   //   };
   // }
 
+
 async holdSeat( userId: number,eventId: number, quantity: number,) {
 
   if (quantity <= 0) {
@@ -97,13 +98,10 @@ async holdSeat( userId: number,eventId: number, quantity: number,) {
         throw new Error('Event not found');
       }
 
-      const activeHolds =
-        await tx.seatHold.aggregate({
+      const activeHolds =await tx.seatHold.aggregate({
 
           where: {
-
             eventId,
-
             expiresAt: {
               gt: new Date(),
             },
@@ -358,5 +356,7 @@ async holdSeat( userId: number,eventId: number, quantity: number,) {
       },
     });
   };
+
+  
 
   }

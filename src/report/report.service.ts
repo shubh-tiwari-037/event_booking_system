@@ -226,4 +226,137 @@ export class ReportService {
   }
 
 
+
+
+  async getEventWiseReport(eventId: number,userId:number) {
+  
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId ,managerId:userId},
+
+      include: {
+        manager: {
+          select: {
+            id: true,
+            firstname: true,
+            lastname: true,
+            email: true,
+          },
+        },
+        bookings: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstname: true,
+                lastname: true,
+                email: true,
+              },
+            },
+
+           
+          },
+        },
+      },
+    });
+
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+   
+    const totalBookings = await this.prisma.booking.count({
+      where: {
+        eventId,
+      },
+    });
+
+    
+    const confirmedBookings = await this.prisma.booking.count({
+      where: {
+        eventId,
+        status: BookingStatus.CONFIRMED,
+      },
+    });
+
+    const cancelledBookings = await this.prisma.booking.count({
+      where: {
+        eventId,
+        status: BookingStatus.CANCELLED,
+      },
+    });
+
+
+    
+    const totalRevenue = await this.prisma.transaction.aggregate({
+      where: {
+        booking: {
+          eventId,
+        },
+      },
+
+      _sum: {
+        amount: true,
+      },
+    });
+
+   
+    const adminRevenue = await this.prisma.adminTransaction.aggregate({
+      where: {
+        booking: {
+          eventId,
+        },
+
+        reason: TransactionReason.ADMIN_SHARE,
+      },
+
+      _sum: {
+        amount: true,
+      },
+    });
+
+  
+    let eventCurrentStatus = '';
+
+    const now = new Date();
+
+    if (event.date > now) {
+      eventCurrentStatus = 'Upcoming';
+    } else {
+      eventCurrentStatus = 'Completed';
+    }
+
+    
+    const totalSeats = event.maxTickets || 0;
+const soldSeats = totalBookings
+    const availableSeats = totalSeats - totalBookings;
+
+    return {
+      message: 'Event wise report fetched successfully',
+
+      eventReport: {
+        eventId: event.id,
+        eventName: event.eventTitle,
+        eventDate: event.date,
+         eventStatusFromDB: event.status,
+        currentEventStatus: eventCurrentStatus,
+      venue: event.venue,
+        manager: event.manager,
+        totalSeats,
+        soldSeats,
+        availableSeats,
+        totalBookings,
+        confirmedBookings,
+        cancelledBookings,
+        totalRevenue: totalRevenue._sum.amount || 0,
+        adminRevenue: adminRevenue._sum.amount || 0,
+        managerRevenue:
+          (totalRevenue._sum.amount || 0) -
+          (adminRevenue._sum.amount || 0),
+
+       
+      },
+    };
+  };
+
+
 }
