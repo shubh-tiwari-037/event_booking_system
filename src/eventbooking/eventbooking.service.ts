@@ -12,66 +12,6 @@ export class EventbookingService {
   ) {}
 
 
-  // async holdSeat(userId: number, eventId: number, quantity: number) {
-  //   if (quantity <= 0) {
-  //     throw new Error('Quantity must be at least 1');
-  //   }
-
-   
-  //   const event = await this.prisma.event.findUnique({
-  //     where: {
-  //       id: eventId,
-  //     },
-  //   });
-
-  //   if (!event) {
-  //     throw new Error('Event not found');
-  //   }
-
-  
-  //   const activeHolds = await this.prisma.seatHold.aggregate({
-  //     where: {
-  //       eventId,
-  //       expiresAt: {
-  //         gt: new Date(),
-  //       },
-  //     },
-
-  //     _sum: {
-  //       quantity: true,
-  //     },
-  //   });
-
-  //   const heldSeats = activeHolds._sum.quantity || 0;
-
-   
-  //   const availableSeats = event.maxTickets - event.soldTickets - heldSeats;
-
-  //   if (availableSeats < quantity) {
-  //     throw new Error('Not enough seats available');
-  //   }
-
-  
-  //   const expiresAt = new Date(Date.now() + 1 * 60 * 1000);
-
-  
-  //   const hold = await this.prisma.seatHold.create({
-  //     data: {
-  //       userId,
-  //       eventId,
-  //       quantity,
-  //       expiresAt,
-  //     },
-  //   });
-
-  //   return {
-  //     message: 'Seat hold created',
-  //     holdId: hold.id,
-  //     expiresAt: hold.expiresAt,
-  //   };
-  // }
-
-
 async holdSeat( userId: number,eventId: number, quantity: number,) {
 
   if (quantity <= 0) {
@@ -178,7 +118,7 @@ async holdSeat( userId: number,eventId: number, quantity: number,) {
         throw new Error('Event not found');
       }
 
-      if (event.status !== EventStatus.ACTIVE) {
+      if (event.status !== EventStatus.Active) {
     throw new Error(
       'Booking is not allowed for this event',
     );
@@ -221,7 +161,7 @@ async holdSeat( userId: number,eventId: number, quantity: number,) {
         userId,
         eventId: hold.eventId,
 
-        status: BookingStatus.CONFIRMED,
+        status: BookingStatus.Confirmed,
 
         createdAt: {
           gte: startOfDay,
@@ -273,7 +213,7 @@ async holdSeat( userId: number,eventId: number, quantity: number,) {
                 quantity: hold.quantity,
                 totalPrice,
                 status:
-                  BookingStatus.PENDING,
+                  BookingStatus.Pending,
               },
             });
 
@@ -299,7 +239,7 @@ async holdSeat( userId: number,eventId: number, quantity: number,) {
           const updatedBooking= await tx.booking.update({
             where:{id:booking.id},
             data: {
-            status: BookingStatus.CONFIRMED,
+            status: BookingStatus.Confirmed,
           },
           });
 
@@ -323,7 +263,7 @@ async holdSeat( userId: number,eventId: number, quantity: number,) {
       eventName: event.eventTitle,
       quantity: hold.quantity,
       totalPrice,
-      bookingStatus: BookingStatus.CONFIRMED,
+      bookingStatus: BookingStatus.Confirmed,
       bookedAt: new Date(),
     },
     }}
@@ -331,16 +271,33 @@ async holdSeat( userId: number,eventId: number, quantity: number,) {
 
 
 
-  async getAllBookings() {
-    return await this.prisma.booking.findMany({
-      include: {
-        user: true,
-        event: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+  
+  async getAllBookings(page: number = 1) {
+    const limit = 5;
+    const skip = (page - 1) * limit;
+
+    const bookings =
+      await this.prisma.booking.findMany({
+        include: {
+          user: true,
+          event: true,
+        },
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+
+        skip,
+
+        take: limit,
+      });
+
+    return {
+      message:
+        'Bookings fetched successfully',
+
+      data: bookings,
+    };
   }
 
 

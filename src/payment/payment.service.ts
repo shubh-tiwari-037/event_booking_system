@@ -83,9 +83,9 @@ export class PaymentService {
       data: {
         userId,
         amount: totalPrice,
-        type: TransactionType.DEBIT,
+        type: TransactionType.Debit,
         reason:
-          TransactionReason.TICKET_PURCHASE,
+          TransactionReason.TicketPurchase,
         referenceId: booking.id,
       },
     });
@@ -94,9 +94,9 @@ export class PaymentService {
       data: {
         adminId: admin.id,
         amount: adminShare,
-        type: TransactionType.CREDIT,
+        type: TransactionType.Credit,
         reason:
-          TransactionReason.ADMIN_SHARE,
+          TransactionReason.AdminShare,
         referenceId: booking.id,
       },
     });
@@ -105,9 +105,9 @@ export class PaymentService {
       data: {
         userId: event.managerId,
         amount: managerShare,
-        type: TransactionType.CREDIT,
+        type: TransactionType.Credit,
         reason:
-          TransactionReason.MANAGER_SHARE,
+          TransactionReason.ManagerShare,
         referenceId: booking.id,
       },
     });

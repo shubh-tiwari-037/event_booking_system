@@ -19,12 +19,12 @@ export class SchedulerService {
             },
 
             status:{
-                not:EventStatus.INACTIVE
+                not:EventStatus.Inactive
             },
         },
 
         data:{
-            status:EventStatus.INACTIVE
+            status:EventStatus.Inactive
         }
     });
 

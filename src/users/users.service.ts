@@ -190,7 +190,7 @@ export class UsersService {
     if (userMeta.passwordHash === passwordHash) {
       return {
         id: user.id,
-        type: user.role === Role.MANAGER ? UserType.Manager :UserType.User,
+        type: user.role === Role.Manager ? UserType.Manager :UserType.User,
       };
     }
 

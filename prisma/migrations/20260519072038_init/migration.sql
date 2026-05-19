@@ -5,16 +5,19 @@ CREATE TYPE "admin_status" AS ENUM ('active');
 CREATE TYPE "user_status" AS ENUM ('active', 'blocked');
 
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('ADMIN', 'MANAGER', 'USER');
+CREATE TYPE "role" AS ENUM ('admin', 'manager', 'user');
 
 -- CreateEnum
-CREATE TYPE "TransactionType" AS ENUM ('CREDIT', 'DEBIT');
+CREATE TYPE "transaction_type" AS ENUM ('credit', 'debit');
 
 -- CreateEnum
-CREATE TYPE "BookingStatus" AS ENUM ('PENDING', 'CONFIRMED', 'CANCELLED');
+CREATE TYPE "booking_status" AS ENUM ('pending', 'confirmed', 'cancelled');
 
 -- CreateEnum
-CREATE TYPE "EventStatus" AS ENUM ('ACTIVE', 'INACTIVE');
+CREATE TYPE "event_status" AS ENUM ('active', 'inactive');
+
+-- CreateEnum
+CREATE TYPE "transaction_reason" AS ENUM ('ticket_purchase', 'admin_share', 'manager_share', 'add_balance');
 
 -- CreateEnum
 CREATE TYPE "otp_transport" AS ENUM ('email', 'mobile');
@@ -59,7 +62,7 @@ CREATE TABLE "user" (
     "is_verified" BOOLEAN NOT NULL DEFAULT false,
     "country" TEXT,
     "status" "user_status" NOT NULL DEFAULT 'active',
-    "role" "Role" NOT NULL DEFAULT 'USER',
+    "role" "role" NOT NULL DEFAULT 'user',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -77,7 +80,7 @@ CREATE TABLE "user_meta" (
 -- CreateTable
 CREATE TABLE "wallet" (
     "id" SERIAL NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "user_id" INTEGER NOT NULL,
     "balance" DOUBLE PRECISION NOT NULL DEFAULT 1000,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -88,7 +91,7 @@ CREATE TABLE "wallet" (
 -- CreateTable
 CREATE TABLE "admin_wallet" (
     "id" SERIAL NOT NULL,
-    "adminId" INTEGER NOT NULL,
+    "admin_id" INTEGER NOT NULL,
     "balance" DOUBLE PRECISION NOT NULL DEFAULT 1000,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -99,11 +102,11 @@ CREATE TABLE "admin_wallet" (
 -- CreateTable
 CREATE TABLE "transaction" (
     "id" SERIAL NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "user_id" INTEGER NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
-    "type" "TransactionType" NOT NULL,
-    "reason" TEXT,
-    "referenceId" INTEGER,
+    "type" "transaction_type" NOT NULL,
+    "reason" "transaction_reason" NOT NULL,
+    "booking_id" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "transaction_pkey" PRIMARY KEY ("id")
@@ -114,9 +117,9 @@ CREATE TABLE "admin_transaction" (
     "id" SERIAL NOT NULL,
     "adminId" INTEGER NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
-    "type" "TransactionType" NOT NULL,
-    "reason" TEXT,
-    "referenceId" INTEGER,
+    "type" "transaction_type" NOT NULL,
+    "reason" "transaction_reason" NOT NULL,
+    "booking_id" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "admin_transaction_pkey" PRIMARY KEY ("id")
@@ -125,15 +128,20 @@ CREATE TABLE "admin_transaction" (
 -- CreateTable
 CREATE TABLE "event" (
     "id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL,
+    "eventTitle" TEXT NOT NULL,
+    "event_performer" TEXT NOT NULL DEFAULT 'Kapil Sharma',
+    "address" TEXT NOT NULL DEFAULT 'MP Nagar Zone-2, Bhopal',
     "city" TEXT NOT NULL,
+    "state" TEXT NOT NULL DEFAULT 'Madhya Pradesh',
     "venue" TEXT NOT NULL,
+    "event_start_time" TIMESTAMP(3),
+    "event_end_time" TIMESTAMP(3),
     "country" TEXT NOT NULL,
-    "date" TIMESTAMP(3) NOT NULL,
-    "ticketPrice" DOUBLE PRECISION NOT NULL,
-    "maxTickets" INTEGER NOT NULL DEFAULT 500,
-    "soldTickets" INTEGER NOT NULL DEFAULT 0,
-    "status" "EventStatus" NOT NULL DEFAULT 'ACTIVE',
+    "event_date" TIMESTAMP(3) NOT NULL,
+    "ticket_price" DOUBLE PRECISION NOT NULL,
+    "total_seats" INTEGER NOT NULL DEFAULT 500,
+    "sold_seats" INTEGER NOT NULL DEFAULT 0,
+    "status" "event_status" NOT NULL DEFAULT 'active',
     "managerId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -144,11 +152,11 @@ CREATE TABLE "event" (
 -- CreateTable
 CREATE TABLE "booking" (
     "id" SERIAL NOT NULL,
-    "userId" INTEGER NOT NULL,
-    "eventId" INTEGER NOT NULL,
-    "quantity" INTEGER NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "event_id" INTEGER NOT NULL,
+    "seat_quanitenty" INTEGER NOT NULL,
     "totalPrice" DOUBLE PRECISION NOT NULL,
-    "status" "BookingStatus" NOT NULL DEFAULT 'CONFIRMED',
+    "status" "booking_status" NOT NULL DEFAULT 'confirmed',
     "seatHoldId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -158,9 +166,9 @@ CREATE TABLE "booking" (
 -- CreateTable
 CREATE TABLE "seat_hold" (
     "id" SERIAL NOT NULL,
-    "userId" INTEGER NOT NULL,
-    "eventId" INTEGER NOT NULL,
-    "quantity" INTEGER NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "event_id" INTEGER NOT NULL,
+    "seat_quanitenty" INTEGER NOT NULL,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -246,13 +254,13 @@ CREATE UNIQUE INDEX "user_meta_google_id_key" ON "user_meta"("google_id");
 CREATE UNIQUE INDEX "user_meta_user_id_key" ON "user_meta"("user_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "wallet_userId_key" ON "wallet"("userId");
+CREATE UNIQUE INDEX "wallet_user_id_key" ON "wallet"("user_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "admin_wallet_adminId_key" ON "admin_wallet"("adminId");
+CREATE UNIQUE INDEX "admin_wallet_admin_id_key" ON "admin_wallet"("admin_id");
 
 -- CreateIndex
-CREATE INDEX "transaction_userId_idx" ON "transaction"("userId");
+CREATE INDEX "transaction_user_id_idx" ON "transaction"("user_id");
 
 -- CreateIndex
 CREATE INDEX "admin_transaction_adminId_idx" ON "admin_transaction"("adminId");
@@ -261,19 +269,19 @@ CREATE INDEX "admin_transaction_adminId_idx" ON "admin_transaction"("adminId");
 CREATE INDEX "event_status_idx" ON "event"("status");
 
 -- CreateIndex
-CREATE INDEX "booking_userId_idx" ON "booking"("userId");
+CREATE INDEX "booking_user_id_idx" ON "booking"("user_id");
 
 -- CreateIndex
-CREATE INDEX "booking_eventId_idx" ON "booking"("eventId");
+CREATE INDEX "booking_event_id_idx" ON "booking"("event_id");
 
 -- CreateIndex
 CREATE INDEX "booking_seatHoldId_idx" ON "booking"("seatHoldId");
 
 -- CreateIndex
-CREATE INDEX "seat_hold_eventId_expiresAt_idx" ON "seat_hold"("eventId", "expiresAt");
+CREATE INDEX "seat_hold_event_id_expiresAt_idx" ON "seat_hold"("event_id", "expiresAt");
 
 -- CreateIndex
-CREATE INDEX "seat_hold_userId_idx" ON "seat_hold"("userId");
+CREATE INDEX "seat_hold_user_id_idx" ON "seat_hold"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "otp_transport_target_key" ON "otp"("transport", "target");
@@ -291,34 +299,37 @@ ALTER TABLE "admin_meta" ADD CONSTRAINT "admin_meta_admin_id_fkey" FOREIGN KEY (
 ALTER TABLE "user_meta" ADD CONSTRAINT "user_meta_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "wallet" ADD CONSTRAINT "wallet_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "wallet" ADD CONSTRAINT "wallet_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "admin_wallet" ADD CONSTRAINT "admin_wallet_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "admin"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "admin_wallet" ADD CONSTRAINT "admin_wallet_admin_id_fkey" FOREIGN KEY ("admin_id") REFERENCES "admin"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "transaction" ADD CONSTRAINT "transaction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "transaction" ADD CONSTRAINT "transaction_booking_id_fkey" FOREIGN KEY ("booking_id") REFERENCES "booking"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "admin_transaction" ADD CONSTRAINT "admin_transaction_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "transaction" ADD CONSTRAINT "transaction_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "admin_transaction" ADD CONSTRAINT "admin_transaction_booking_id_fkey" FOREIGN KEY ("booking_id") REFERENCES "booking"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "admin_transaction" ADD CONSTRAINT "admin_transaction_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "admin"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "event" ADD CONSTRAINT "event_managerId_fkey" FOREIGN KEY ("managerId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "booking" ADD CONSTRAINT "booking_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "booking" ADD CONSTRAINT "booking_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "booking" ADD CONSTRAINT "booking_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "event"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "booking" ADD CONSTRAINT "booking_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "event"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "booking" ADD CONSTRAINT "booking_seatHoldId_fkey" FOREIGN KEY ("seatHoldId") REFERENCES "seat_hold"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "seat_hold" ADD CONSTRAINT "seat_hold_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "seat_hold" ADD CONSTRAINT "seat_hold_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "seat_hold" ADD CONSTRAINT "seat_hold_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "event"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "seat_hold" ADD CONSTRAINT "seat_hold_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "event"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "setting" ADD CONSTRAINT "setting_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "setting"("id") ON DELETE SET NULL ON UPDATE CASCADE;

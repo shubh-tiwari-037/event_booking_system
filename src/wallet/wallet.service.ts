@@ -81,8 +81,8 @@ export class WalletService {
         data: {
           userId,
           amount,
-          type: TransactionType.CREDIT,
-          reason: TransactionReason.ADD_BALANCE,
+          type: TransactionType.Credit,
+          reason: TransactionReason.AddBalance,
         },
       });
       return {
@@ -114,8 +114,8 @@ export class WalletService {
         data: {
           adminId: userId,
           amount,
-          type: TransactionType.CREDIT,
-          reason: TransactionReason.ADD_BALANCE,
+          type: TransactionType.Credit,
+          reason: TransactionReason.AddBalance,
         },
       });
       return {
@@ -127,7 +127,7 @@ export class WalletService {
 
 
   async getTransactions(id: number, role: string) {
-    // ADMIN
+ 
     if (role === UserType.Admin) {
       return await this.prisma.adminTransaction.findMany({
         where: {
@@ -140,7 +140,7 @@ export class WalletService {
       });
     }
 
-    // MANAGER
+
     if (role === UserType.Manager || role === UserType.User) {
       return this.prisma.transaction.findMany({
         where: {

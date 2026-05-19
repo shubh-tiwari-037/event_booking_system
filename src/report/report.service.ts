@@ -13,179 +13,221 @@ import { PrismaService } from 'src/prisma';
 export class ReportService {
   constructor(private readonly prisma: PrismaService) {}
 
+
   async adminReportData() {
-    return this.prisma.$transaction(async (tx) => {
-      const totalUsers = await tx.user.count({
-        where: { role: 'USER' },
-      });
+    const [
+      totalUsers,
+      totalManager,
+      suspendedUsers,
 
-      const totalManager = await tx.user.count({
-        where: { role: 'MANAGER' },
-      });
+      totalEvents,
+      activeEvents,
+      suspendedEvents,
 
-      const suspendedUsers = await tx.user.count({
-        where: { status: 'Blocked' },
-      });
+      confirmedBookings,
+      pendingBookings,
 
-      const totalEvents = await tx.event.count({});
-
-      const activeEvents = await tx.event.count({
-        where: { status: 'ACTIVE' },
-      });
-
-      const suspendedEvents = await tx.event.count({
-        where: { status: 'INACTIVE' },
-      });
-
-      const confirmedBookings = await tx.booking.count({
-        where: { status: 'CONFIRMED' },
-      });
-
-      const pendingBookings = await tx.booking.count({
-        where: { status: 'PENDING' },
-      });
-
-      const managerShare = await tx.transaction.aggregate({
+      managerShare,
+      adminShare,
+    ] = await Promise.all([
+      this.prisma.user.count({
         where: {
-          reason: TransactionReason.MANAGER_SHARE,
+          role: 'User',
+        },
+      }),
+
+      this.prisma.user.count({
+        where: {
+          role: 'Manager',
+        },
+      }),
+
+      this.prisma.user.count({
+        where: {
+          status: 'Blocked',
+        },
+      }),
+
+      this.prisma.event.count(),
+
+      this.prisma.event.count({
+        where: {
+          status: 'Active',
+        },
+      }),
+
+      this.prisma.event.count({
+        where: {
+          status: 'Inactive',
+        },
+      }),
+
+      this.prisma.booking.count({
+        where: {
+          status: 'Confirmed',
+        },
+      }),
+
+      this.prisma.booking.count({
+        where: {
+          status: 'Pending',
+        },
+      }),
+
+      this.prisma.transaction.aggregate({
+        where: {
+          reason: TransactionReason.ManagerShare,
         },
 
         _sum: {
           amount: true,
         },
-      });
+      }),
 
-      const adminShare = await tx.adminTransaction.aggregate({
+      this.prisma.adminTransaction.aggregate({
         where: {
-          reason: TransactionReason.ADMIN_SHARE,
+          reason: TransactionReason.AdminShare,
         },
 
         _sum: {
           amount: true,
         },
-      });
+      }),
+    ]);
 
-      const adminRevenue = adminShare._sum.amount || 0;
-      const managerRevenue = managerShare._sum.amount || 0;
-      const totalRevenue = adminRevenue + managerRevenue;
+    const adminRevenue = adminShare._sum.amount || 0;
 
-      return {
-        status: 'success',
+    const managerRevenue = managerShare._sum.amount || 0;
 
-        data: {
-          users: {
-            totalUsers: totalUsers,
-            totalManagers: totalManager,
-            suspendedUsers: suspendedUsers,
-          },
+    return {
+      status: 'success',
 
-          events: {
-            totalEvents: totalEvents,
-            activeEvents: activeEvents,
-            suspendedEvents: suspendedEvents,
-          },
-
-          bookings: {
-            confirmedBooking: confirmedBookings,
-            pendingBookings: pendingBookings,
-          },
-
-          earnings: {
-            adminTotalEarnings: adminRevenue,
-            managerTotalEarnings: managerRevenue,
-            totalRevenueOnTicketBooking: totalRevenue,
-          },
+      data: {
+        users: {
+          totalUsers,
+          totalManagers: totalManager,
+          suspendedUsers,
         },
-      };
-    });
-  }
 
-  async managerData(managerId: number) {
-    return await this.prisma.$transaction(async (tx) => {
-      const totalEvents = await tx.event.count({
-        where: {
-          managerId,
+        events: {
+          totalEvents,
+          activeEvents,
+          suspendedEvents,
         },
-      });
 
-      const activeEvents = await tx.event.count({
-        where: {
-          managerId,
-          status: 'ACTIVE',
+        bookings: {
+          confirmedBooking: confirmedBookings,
+          pendingBookings,
         },
-      });
 
-      const suspendedEvents = await tx.event.count({
-        where: {
-          managerId,
-          status: 'INACTIVE',
+        earnings: {
+          adminTotalEarnings: adminRevenue,
+          managerTotalEarnings: managerRevenue,
+          totalRevenueOnTicketBooking: adminRevenue + managerRevenue,
         },
-      });
-
-      const ConfirmedBookings = await tx.booking.count({
-        where: {
-          event: {
-            managerId,
-          },
-          status: 'CONFIRMED',
-        },
-      });
-
-      const PandingBookings = await tx.booking.count({
-        where: {
-          event: {
-            managerId,
-          },
-          status: 'PENDING',
-        },
-      });
-
-      const managerRevenue = await tx.transaction.aggregate({
-        where: {
-          reason: TransactionReason.MANAGER_SHARE,
-          booking: {
-            event: {
-              managerId,
-            },
-            status: 'CONFIRMED',
-          },
-        },
-        _sum: {
-          amount: true,
-        },
-      });
-
-      const managerShare = managerRevenue._sum.amount || 0;
-
-      return {
-        status: 'success',
-
-        data: {
-          events: {
-            total: totalEvents,
-            active: activeEvents,
-            suspended: suspendedEvents,
-          },
-
-          bookings: {
-            confirmed: ConfirmedBookings,
-            pending: PandingBookings,
-          },
-
-          earnings: {
-            manager: managerShare,
-          },
-        },
-      };
-    });
+      },
+    };
   }
 
 
+async managerData(managerId: number) {
+  const [
+    totalEvents,
+    activeEvents,
+    suspendedEvents,
+
+    confirmedBookings,
+    pendingBookings,
+
+    managerRevenue,
+  ] = await Promise.all([
+    this.prisma.event.count({
+      where: {
+        managerId,
+      },
+    }),
+
+    this.prisma.event.count({
+      where: {
+        managerId,
+        status: 'Active',
+      },
+    }),
+
+    this.prisma.event.count({
+      where: {
+        managerId,
+        status: 'Inactive',
+      },
+    }),
+
+    this.prisma.booking.count({
+      where: {
+        event: {
+          managerId,
+        },
+
+        status: 'Confirmed',
+      },
+    }),
+
+    this.prisma.booking.count({
+      where: {
+        event: {
+          managerId,
+        },
+
+        status: 'Pending',
+      },
+    }),
+
+    this.prisma.transaction.aggregate({
+      where: {
+        reason:
+          TransactionReason.ManagerShare,
+
+        booking: {
+          event: {
+            managerId,
+          },
+
+          status: 'Confirmed',
+        },
+      },
+
+      _sum: {
+        amount: true,
+      },
+    }),
+  ]);
+
+  const managerShare =
+    managerRevenue._sum.amount || 0;
+
+  return {
+    status: 'success',
+
+    data: {
+      events: {
+        totalEvents: totalEvents,
+        activeEvents: activeEvents,
+        suspendedEvents: suspendedEvents,
+      },
+
+      bookings: {
+        confirmedBookings: confirmedBookings,
+        pendingBookings: pendingBookings,
+      },
+
+      earnings: {
+        managerEarnings: managerShare,
+      },
+    },
+  };
+}
 
   async getPlatformRevenue(eventId: number) {
-
-     const event =await this.prisma.event.findUnique({
-
+    const event = await this.prisma.event.findUnique({
       where: {
         id: eventId,
       },
@@ -195,43 +237,38 @@ export class ReportService {
       },
     });
 
-  if (!event) {
-    throw new Error('Event not found');
-  }
+    if (!event) {
+      throw new Error('Event not found');
+    }
 
     const revenue = await this.prisma.adminTransaction.aggregate({
       where: {
-        reason: TransactionReason.ADMIN_SHARE,
+        reason: TransactionReason.AdminShare,
         booking: {
-         is:{
-          eventId: eventId,
-            status: BookingStatus.CONFIRMED,
-         }
-            
+          is: {
+            eventId: eventId,
+            status: BookingStatus.Confirmed,
           },
+        },
       },
 
-       _sum: {
-          amount: true,
-        },
+      _sum: {
+        amount: true,
+      },
     });
 
     return {
-      message:'paltform revenue for this event',
-       managerName:`${event.manager.firstname} ${event.manager.lastname}`,
+      message: 'paltform revenue for this event',
+      managerName: `${event.manager.firstname} ${event.manager.lastname}`,
       eventId,
-      eventName:event.eventTitle,
-      platformRevenue: revenue._sum?.amount|| 0,
+      eventName: event.eventTitle,
+      platformRevenue: revenue._sum?.amount || 0,
     };
   }
 
-
-
-
-  async getEventWiseReport(eventId: number,userId:number) {
-  
+  async getEventWiseReport(eventId: number, userId: number) {
     const event = await this.prisma.event.findUnique({
-      where: { id: eventId ,managerId:userId},
+      where: { id: eventId, managerId: userId },
 
       include: {
         manager: {
@@ -252,8 +289,6 @@ export class ReportService {
                 email: true,
               },
             },
-
-           
           },
         },
       },
@@ -263,30 +298,26 @@ export class ReportService {
       throw new Error('Event not found');
     }
 
-   
     const totalBookings = await this.prisma.booking.count({
       where: {
         eventId,
       },
     });
 
-    
     const confirmedBookings = await this.prisma.booking.count({
       where: {
         eventId,
-        status: BookingStatus.CONFIRMED,
+        status: BookingStatus.Confirmed,
       },
     });
 
     const cancelledBookings = await this.prisma.booking.count({
       where: {
         eventId,
-        status: BookingStatus.CANCELLED,
+        status: BookingStatus.Cancelled,
       },
     });
 
-
-    
     const totalRevenue = await this.prisma.transaction.aggregate({
       where: {
         booking: {
@@ -299,14 +330,13 @@ export class ReportService {
       },
     });
 
-   
     const adminRevenue = await this.prisma.adminTransaction.aggregate({
       where: {
         booking: {
           eventId,
         },
 
-        reason: TransactionReason.ADMIN_SHARE,
+        reason: TransactionReason.AdminShare,
       },
 
       _sum: {
@@ -314,7 +344,6 @@ export class ReportService {
       },
     });
 
-  
     let eventCurrentStatus = '';
 
     const now = new Date();
@@ -325,9 +354,8 @@ export class ReportService {
       eventCurrentStatus = 'Completed';
     }
 
-    
     const totalSeats = event.maxTickets || 0;
-const soldSeats = totalBookings
+    const soldSeats = totalBookings;
     const availableSeats = totalSeats - totalBookings;
 
     return {
@@ -337,9 +365,9 @@ const soldSeats = totalBookings
         eventId: event.id,
         eventName: event.eventTitle,
         eventDate: event.date,
-         eventStatusFromDB: event.status,
+        eventStatusFromDB: event.status,
         currentEventStatus: eventCurrentStatus,
-      venue: event.venue,
+        venue: event.venue,
         manager: event.manager,
         totalSeats,
         soldSeats,
@@ -350,13 +378,8 @@ const soldSeats = totalBookings
         totalRevenue: totalRevenue._sum.amount || 0,
         adminRevenue: adminRevenue._sum.amount || 0,
         managerRevenue:
-          (totalRevenue._sum.amount || 0) -
-          (adminRevenue._sum.amount || 0),
-
-       
+          (totalRevenue._sum.amount || 0) - (adminRevenue._sum.amount || 0),
       },
     };
-  };
-
-
+  }
 }

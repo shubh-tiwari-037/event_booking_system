@@ -5,167 +5,212 @@ import { PrismaService } from 'src/prisma';
 import { AuthenticatedRequest } from '@Common';
 import { EventStatus } from 'src/generated/prisma/enums';
 
-
 @Injectable()
 export class EventService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createEvent(createEventDto: CreateEventDto, req: AuthenticatedRequest) {
-    const { eventTitle,performer, maxTickets, date,startTime,endTime ,ticketPrice, city,address,state, venue, country } = createEventDto;
+    const {
+      eventTitle,
+      performer,
+      maxTickets,
+      date,
+      startTime,
+      endTime,
+      ticketPrice,
+      city,
+      address,
+      state,
+      venue,
+      country,
+    } = createEventDto;
     const managerId = req.user.id;
     // const eventDate = new Date(Date.now() + 7 * 24 * 60* 60 * 1000);
-    
 
     try {
-      
-       const existeEvent = await this.prisma.event.findFirst({
-      // where: { name, date: eventDate },
-       where: { eventTitle, date },
-    });
+      const existeEvent = await this.prisma.event.findFirst({
+        // where: { name, date: eventDate },
+        where: { eventTitle, date },
+      });
 
-    if (existeEvent) {
-      throw new Error('event alrady existe this date ');
-    }
+      if (existeEvent) {
+        throw new Error('event alrady existe this date ');
+      }
 
-    const event = await this.prisma.event.create({
-    data:{
-        eventTitle,
-        performer,
-        maxTickets,
-        // date: eventDate,
-         date,
-         startTime,
-         endTime,
-        ticketPrice,
-        managerId,
-        city,
-        address,
-        state,
-        country,
-        venue
-      },
-    });
+      const event = await this.prisma.event.create({
+        data: {
+          eventTitle,
+          performer,
+          maxTickets,
+          // date: eventDate,
+          date,
+          startTime,
+          endTime,
+          ticketPrice,
+          managerId,
+          city,
+          address,
+          state,
+          country,
+          venue,
+        },
+      });
 
-    return {message :"event created successfully",event}
-
+      return { message: 'event created successfully', event };
     } catch (error) {
-      console.log("ERROR WHILE CREATING EVENT",error)
+      console.log('ERROR WHILE CREATING EVENT', error);
     }
-
-   
   }
 
 
- async allEvents() {
+async allEvents({
+  page,
+  limit,
+  search,
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}) {
+
+  const currentPage = Number(page) || 1;
+  const currentLimit = Number(limit) || 10;
+  const searchValue = search || '';
+
+  const skip = (currentPage - 1) * currentLimit;
+
   const events = await this.prisma.event.findMany({
+    where: {
+      OR: [
+        {
+          eventTitle: {
+            contains: searchValue,
+            mode: 'insensitive',
+          },
+        },
+
+        {
+          city: {
+            contains: searchValue,
+            mode: 'insensitive',
+          },
+        },
+
+        {
+          venue: {
+            contains: searchValue,
+            mode: 'insensitive',
+          },
+        },
+      ],
+    },
+
     orderBy: {
-      date: 'asc', 
+      date: 'asc',
     },
-      include:{
-      manager:{
-        select:{
-          firstname:true,lastname:true
-        }
-      }
+
+    include: {
+      manager: {
+        select: {
+          firstname: true,
+          lastname: true,
+        },
+      },
     },
-  });
-  if(!events)
-  {
 
-    throw new Error("event is not found ")
-  }
-  return events;
-}
+    skip,
 
-
-
- async eventById(id: number) {
-  const event = await this.prisma.event.findUnique({
-    where: { id },
-    include:{
-      manager:{
-        select:{
-          firstname:true,lastname:true
-        }
-      }
-    },
-  });
-
-  if (!event) {
-    throw new Error('Event not found');
-  }
-
-  return event;
-}
-
-
-  async updateEvent(id: number, updateEventDto: UpdateEventDto) {
-  //  const {name, date} = updateEventDto
-
-  console.log(id);
-
-   const event = await this.prisma.event.findUnique({
-    where:{
-      id,
-    }
-   })
-
-     if(!event){
-      throw new Error("event not found")
-  }
-
-  const updated = await this.prisma.event.update({
-    where:{
-      id,
-    },
-    data:{
-      ...updateEventDto
-    }
-  })
-return {message:"evented updated successfully"}  
-
-};
-
-
-async eventRemove(id: number) {
- 
-  const event = await this.prisma.event.findUnique({
-    where: { id },
-  });
-
-  if (!event) {
-    throw new Error('Event not found');
-  }
-
- 
-  await this.prisma.event.delete({
-    where: { id },
+    take: currentLimit,
   });
 
   return {
-    message: 'Event deleted successfully',
+    message: 'Events fetched successfully',
+
+    data: events,
   };
 }
 
 
-async setStatus(id:number, status:EventStatus){
 
-  const event = await this.prisma.event.findFirst({
-    where:{id},
+  async eventById(id: number) {
+    const event = await this.prisma.event.findUnique({
+      where: { id },
+      include: {
+        manager: {
+          select: {
+            firstname: true,
+            lastname: true,
+          },
+        },
+      },
+    });
 
-  })
+    if (!event) {
+      throw new Error('Event not found');
+    }
 
-  if(!event){
-    throw new Error("event is not found")
+    return event;
   }
 
-  await this.prisma.event.update({
-    where:{id},
-    data:{
-      status
-    }
-  })
-  return {message:"status changed successfully"}
-}
+  async updateEvent(id: number, updateEventDto: UpdateEventDto) {
+    //  const {name, date} = updateEventDto
 
+    console.log(id);
+
+    const event = await this.prisma.event.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!event) {
+      throw new Error('event not found');
+    }
+
+    const updated = await this.prisma.event.update({
+      where: {
+        id,
+      },
+      data: {
+        ...updateEventDto,
+      },
+    });
+    return { message: 'evented updated successfully' };
+  }
+
+  async eventRemove(id: number) {
+    const event = await this.prisma.event.findUnique({
+      where: { id },
+    });
+
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    await this.prisma.event.delete({
+      where: { id },
+    });
+
+    return {
+      message: 'Event deleted successfully',
+    };
+  }
+
+  async setStatus(id: number, status: EventStatus) {
+    const event = await this.prisma.event.findFirst({
+      where: { id },
+    });
+
+    if (!event) {
+      throw new Error('event is not found');
+    }
+
+    await this.prisma.event.update({
+      where: { id },
+      data: {
+        status,
+      },
+    });
+    return { message: 'status changed successfully' };
+  }
 }

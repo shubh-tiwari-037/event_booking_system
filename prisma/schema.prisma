@@ -25,27 +25,34 @@ enum UserStatus {
 }
 
 enum Role {
-  ADMIN
-  MANAGER
-  USER
+  Admin   @map("admin")
+  Manager @map("manager")
+  User    @map("user")
+
+  @@map("role")
 }
 
 enum TransactionType {
-  CREDIT
-  DEBIT
+  Credit @map("credit")
+  Debit  @map("debit")
+
+  @@map("transaction_type")
 }
 
 enum BookingStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
+  Pending  @map("pending")
+  Confirmed @map("confirmed")
+  Cancelled @map("cancelled")
+
+  @@map("booking_status")
 }
 
 enum EventStatus {
-  ACTIVE
-  INACTIVE
-}
+  Active   @map("active")
+  Inactive @map("inactive")
 
+  @@map("event_status")
+}
 model Admin {
   id               Int                @id @default(autoincrement())
   firstname        String
@@ -83,7 +90,7 @@ model User {
   isVerified   Boolean       @default(false) @map("is_verified")
   country      String?
   status       UserStatus    @default(Active)
-  role         Role          @default(USER)
+  role         Role          @default(User)
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
   meta         UserMeta?
@@ -112,7 +119,7 @@ model UserMeta {
 
 model Wallet {
   id      Int   @id @default(autoincrement())
-  userId  Int   @unique
+  userId  Int   @unique @map("user_id")
   balance Float @default(1000)
 
   createdAt DateTime @default(now())
@@ -125,7 +132,7 @@ model Wallet {
 
 model AdminWallet {
   id      Int   @id @default(autoincrement())
-  adminId Int   @unique
+  adminId Int   @unique @map("admin_id")
   balance Float @default(1000)
 
   createdAt DateTime @default(now())
@@ -137,19 +144,20 @@ model AdminWallet {
 }
 
 enum TransactionReason {
-  TICKET_PURCHASE
-  ADMIN_SHARE
-  MANAGER_SHARE
-  ADD_BALANCE
-}
+  TicketPurchase @map("ticket_purchase")
+  AdminShare     @map("admin_share")
+  ManagerShare   @map("manager_share")
+  AddBalance     @map("add_balance")
 
+  @@map("transaction_reason")
+}
 model Transaction {
   id          Int               @id @default(autoincrement())
-  userId      Int
+  userId      Int  @map("user_id")
   amount      Float
   type        TransactionType
   reason      TransactionReason
-  referenceId Int?
+  referenceId Int?   @map("booking_id")
   booking     Booking?          @relation(fields: [referenceId], references: [id])
 
   createdAt DateTime @default(now())
@@ -166,7 +174,7 @@ model AdminTransaction {
   amount      Float
   type        TransactionType
   reason      TransactionReason
-  referenceId Int?
+  referenceId Int?  @map("booking_id")
 
   booking Booking? @relation(fields: [referenceId], references: [id])
 
@@ -181,21 +189,21 @@ model AdminTransaction {
 model Event {
   id          Int      @id @default(autoincrement())
   eventTitle       String  
-  performer   String   @default("Kapil Sharma")
+  performer   String   @default("Kapil Sharma") @map("event_performer")
   address     String   @default("MP Nagar Zone-2, Bhopal")
   city        String
   state       String   @default("Madhya Pradesh")
-  venue       String
-  startTime   DateTime?
+  venue       String   
+  startTime   DateTime?  @map("event_start_time")
 
-  endTime     DateTime?
+  endTime     DateTime?   @map("event_end_time")
   country     String
-  date        DateTime
-  ticketPrice Float
-  maxTickets  Int      @default(500)
-  soldTickets Int      @default(0)
+  date        DateTime   @map("event_date")
+  ticketPrice Float     @map("ticket_price")
+  maxTickets  Int      @default(500) @map("total_seats")
+  soldTickets Int      @default(0)   @map("sold_seats")
 
-  status EventStatus @default(ACTIVE)
+  status EventStatus @default(Active)
 
   managerId Int
   manager   User @relation("ManagerEvents", fields: [managerId], references: [id])
@@ -214,13 +222,13 @@ model Event {
 model Booking {
   id Int @id @default(autoincrement())
 
-  userId  Int
-  eventId Int
+  userId  Int @map("user_id")
+  eventId Int @map("event_id")
 
-  quantity   Int
+  quantity   Int  @map("seat_quanitenty")
   totalPrice Float
 
-  status BookingStatus @default(CONFIRMED)
+  status BookingStatus @default(Confirmed)
 
   // Seat hold relation
   seatHoldId Int?
@@ -243,10 +251,10 @@ model Booking {
 model SeatHold {
   id Int @id @default(autoincrement())
 
-  userId  Int
-  eventId Int
+  userId  Int  @map("user_id")
+  eventId Int @map("event_id")
 
-  quantity  Int
+  quantity  Int @map("seat_quanitenty")
   expiresAt DateTime
 
   createdAt DateTime @default(now())
