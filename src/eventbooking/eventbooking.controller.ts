@@ -23,6 +23,7 @@ import {
 } from '@Common';
 import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { CreateSeatHoldDto } from './dto/create-seat-hold.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('booking')
 export class EventbookingController {
@@ -58,6 +59,7 @@ export class EventbookingController {
   @Post('hold')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+   @Throttle({ default: { limit: 5, ttl: 60000 } })
   holdSeat(
     @Body() createSeatHoldDto: CreateSeatHoldDto,
     @Req() req: AuthenticatedRequest,

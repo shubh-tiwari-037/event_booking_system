@@ -3,7 +3,7 @@ import { ConfigType } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MulterModule } from '@nestjs/platform-express';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { CacheModule } from '@nestjs/cache-manager';
 import { CommonModule, StorageService, UtilsService } from '@Common';
 import { appConfigFactory } from '@Config';
@@ -20,13 +20,21 @@ import { ReportModule } from './report/report.module';
 import { PaymentModule } from './payment/payment.module';
 import { SchedulerService } from './scheduler/scheduler.service';
 import { SchedulerModule } from './scheduler/scheduler.module';
-
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 
 
 
 @Module({
   imports: [
+
+      ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 20,
+      },
+    ]),
+    
       SchedulerModule,
      ScheduleModule.forRoot(),
     MulterModule.registerAsync({
@@ -54,8 +62,9 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     WalletModule,
     ReportModule,
     PaymentModule,
-    ReportModule
-    
+    ReportModule,
+
+
  
   ],
   controllers: [AppController],
@@ -77,6 +86,11 @@ import { SchedulerModule } from './scheduler/scheduler.module';
       useClass: AppCacheInterceptor,
     },
     SchedulerService,
+
+      {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
